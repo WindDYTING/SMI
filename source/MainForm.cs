@@ -29,6 +29,7 @@ namespace SMI
             try
             {
                 await _fetcher.DownloadAsync();
+                _browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
             }
             catch (Exception ex)
             {
@@ -53,7 +54,6 @@ namespace SMI
         {
             try
             {
-                _browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
                 lblStatus.Text = "Loading...";
                 var data = await GetReports(selectionKind.SelectedIndex);
                 var json = data.ToJson();
@@ -133,6 +133,12 @@ namespace SMI
             {
                 if (_browser != null)
                     await _browser.CloseAsync();
+
+                //foreach (var process in Process.GetProcesses().Where(p => p.ProcessName == "chrome"))
+                //{
+                //    process.Kill();
+                //    process.Close();
+                //}
             }
             catch (Exception ex)
             {
