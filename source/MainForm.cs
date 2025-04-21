@@ -24,12 +24,15 @@ namespace SMI
                 .CreateLogger();
         }
 
-        private async void MainForm_Load(object sender, System.EventArgs e)
+        private void MainForm_Load(object sender, System.EventArgs e)
         {
             try
             {
-                await _fetcher.DownloadAsync();
-                _browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
+                TaskHelper.RunSync(_fetcher.DownloadAsync);
+                _browser = TaskHelper.RunSyncWithReturn(options => Puppeteer.LaunchAsync(options), new LaunchOptions
+                {
+                    Headless = true,
+                });
             }
             catch (Exception ex)
             {
