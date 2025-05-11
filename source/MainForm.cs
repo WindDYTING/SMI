@@ -1,38 +1,61 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using PuppeteerSharp;
+using AutoTrader;
+using Microsoft.Extensions.Configuration;
 using Serilog;
-using Serilog.Events;
 
 namespace SMI
 {
-    public partial class MainForm : Form
-    {
-        private readonly IBrowserFetcher _fetcher;
-        private IBrowser _browser;
+    public partial class MainForm : Form {
+        private readonly IConfiguration _configuration;
+        private readonly Crawler _crawler;
+        private readonly Guarantor _guarantor;
+        private readonly SynchronizationContext _synchronizationContext;
+        private readonly TimerService _timerService;
 
-        public MainForm()
-        {
+        private readonly List<Dictionary<string, string>> _results = new();
+
+        public MainForm(IConfiguration configuration) {
             InitializeComponent();
-            _fetcher = new BrowserFetcher();
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.File(".log", LogEventLevel.Error, rollingInterval: RollingInterval.Day)
-                .CreateLogger();
+            _configuration = configuration;
+            queryForm.CustomFormat = "yyyyMMdd";
+            queryTo.CustomFormat = "yyyyMMdd";
+            checkQueryRecent.Tag = checkSpecifyDate;
+            checkSpecifyDate.Tag = checkQueryRecent;
+            _crawler = new Crawler();
+            _guarantor = new Guarantor(_crawler);
+            _guarantor.MessageReceived += OnMessageReceived;
+            _crawler.Guarantor = _guarantor;
+            _synchronizationContext = SynchronizationContext.Current;
+            _timerService = new TimerService(new TimeOnly(21, 30));
+            _timerService.TimeIsUp += OnTimeIsUp;
         }
 
-        private void MainForm_Load(object sender, System.EventArgs e)
+        private async void OnTimeIsUp(object sender, EventArgs e)
         {
             try
             {
-                TaskHelper.RunSync(_fetcher.DownloadAsync);
-                _browser = TaskHelper.RunSyncWithReturn(options => Puppeteer.LaunchAsync(options), new LaunchOptions
+                _synchronizationContext.Post(_ => lblStatus.Text = "Getting Data...", null);
+                foreach (int checkedIndex in selectionEventList.CheckedIndices)
                 {
-                    Headless = true,
-                });
+                    await CrawlerGetReports(checkedIndex);
+
+                    var msg = string.Join($"-------{Environment.NewLine}", _results.Select(d => d.ToJson().Trim('{', '}')));
+
+                    await TelegramNotify.SendAsync(msg, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
+                    _synchronizationContext.Post(_ =>
+                    {
+                        txtLog.AppendText(msg + Environment.NewLine);
+                        txtLog.AppendText("Telegram notified." + Environment.NewLine);
+                    }, null);
+
+                    _results.Clear();
+                }
+                _synchronizationContext.Post(_ => lblStatus.Text = "Finished!", null);
             }
             catch (Exception ex)
             {
@@ -40,113 +63,89 @@ namespace SMI
             }
         }
 
-        private void MainForm_Shown(object sender, EventArgs e)
+        private void OnMessageReceived(object sender, MessageReceivedEventArgs e) {
+            _results.AddRange(e.Result);
+        }
+
+        private async void MainForm_Load(object sender, EventArgs e) {
+            await _crawler.InitAsync();
+        }
+
+        private void MainForm_Shown(object sender, EventArgs e) 
         {
-            try
-            {
+            try {
                 selectionKind.SelectedIndex = 0;
                 selectionQueryRange.SelectedIndex = 0;
-            }
-            catch (Exception ex)
-            {
+                foreach (var section in _configuration
+                             .GetSection("telegramGroups")
+                             .GetChildren())
+                {
+                    var option = new TelegramNotifyOptions();
+                    section.Bind(option);
+                    TelegramNotify.Options.Add(option);
+                    checkTelegramSendToWho.Items.Add(option.Name);
+                }
+            } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
             }
         }
+
 
         private async void btnCrawler_Click(object sender, EventArgs e)
         {
             try
             {
-                lblStatus.Text = "Loading...";
-                var data = await GetReports(selectionKind.SelectedIndex);
-                var json = data.ToJson();
-                textBox1.Text = json;
+                lblStatus.Text = "Getting Data...";
+
+                await CrawlerGetReports(selectionKind.SelectedIndex);
+
+                var msg = string.Join($"------- {Environment.NewLine}", _results.Select(d => d.ToJson().Trim('{', '}')));
+                await TelegramNotify.SendAsync(msg, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
+                txtLog.AppendText(msg + Environment.NewLine);
+                txtLog.AppendText("Telegram notified." + Environment.NewLine);
             }
-            catch (WaitTaskTimeoutException)
+            catch (Exception)
             {
-                MessageBox.Show("查無資料");
-                textBox1.Text = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), "query fault");
-                Log.Error(ex, ex.Message);
-                textBox1.Text = string.Empty;
+                // ignored
             }
             finally
             {
-                lblStatus.Text = "Finished";
+                _results.Clear();
+                lblStatus.Text = "Finished!";
             }
         }
 
-        public async Task<IList<Dictionary<string, string>>> GetReports(int selectionValue)
+        private async Task CrawlerGetReports(int notionKind)
         {
-            await using var page = await _browser.NewPageAsync();
-            await page.GoToAsync(Router.ShareholdingMeetReportsUrl);
-            await page.ClickAsync("#div4 > input[type=radio]:nth-child(5)");
-            await page.SelectAsync("#date", (selectionQueryRange.SelectedIndex + 1).ToString());
-            await page.SelectAsync("#noticeKind", (selectionValue + 1).ToString());
-            await page.ClickAsync("#search_bar1 > div > input[type=button]");
-            var tbody = await page.WaitForSelectorAsync("#div01 > form > table > tbody", new WaitForSelectorOptions
-            {
-                Timeout = (int)TimeSpan.FromSeconds((double)timeout.Value).TotalMilliseconds
-            });
-            var elements = (await tbody.QuerySelectorAllAsync("#div01 > form > table > tbody > tr")).Skip(1);
-            foreach (var element in elements)
-            {
-                var elementOfButton = await element.QuerySelectorAsync(
-                    "#div01 > form > table > tbody > tr > td:nth-child(5) > input[type=button]");
-                await elementOfButton.ClickAsync();
+            IList<Dictionary<string, string>> data;
+            if(checkSpecifyDate.Checked) {
+                data = await _crawler.GetReportsRange(notionKind,
+                    queryForm.Value.ToTaiwanDateString(),
+                    queryTo.Value.ToTaiwanDateString());
+            } else {
+                data = await _crawler.GetReports(notionKind,
+                    (selectionQueryRange.SelectedIndex + 1).ToString());
             }
-
-            var list = new List<Dictionary<string, string>>();
-            var pages = await _browser.PagesAsync();
-            pages = pages.Where(p => p != page).ToArray();
-            foreach (var p in pages)
-            {
-                if (!p.Url.Equals(Router.ShareholdingMeetReportsUrl) || p == page)
-                {
-                    continue;
-                }
-
-                await p.WaitForSelectorAsync("#div01 > center > table > tbody > tr:nth-child(1) > td");
-                await Task.Delay(400);
-                var dict = new Dictionary<string, string>();
-                var values = await p.QuerySelectorAllAsync(SelectorFactory.GetValueSelector(selectionValue));
-                var fields = await p.QuerySelectorAllAsync(SelectorFactory.GetFieldSelector(selectionValue));
-                foreach (var item in fields.Zip(values, (x, y) => (fieldElement: x, valueElement: y)))
-                {
-                    var field = await p.EvaluateFunctionAsync<string>("e => e.textContent", item.fieldElement);
-                    var value = await p.EvaluateFunctionAsync<string>("e => e.textContent", item.valueElement);
-                    field = field.FilterString("\n");
-                    value = value.FilterString("\n");
-                    dict.TryAdd(field, value);
-                }
-                if (dict.Any()) list.Add(dict);
-            }
-
-            await Task.WhenAll(pages.Select(p => p.CloseAsync()));
-
-            return list;
+            _results.AddRange(data);
         }
 
-        private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            try
-            {
-                if (_browser != null)
-                    await _browser.CloseAsync();
 
-                //foreach (var process in Process.GetProcesses().Where(p => p.ProcessName == "chrome"))
-                //{
-                //    process.Kill();
-                //    process.Close();
-                //}
-            }
-            catch (Exception ex)
-            {
+        private async void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
+            try {
+                await _crawler.DisposeAsync();
+            } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
             }
+        }
+
+        private void checkbox_CheckedChanged(object sender, EventArgs e) {
+            var ckb = (CheckBox)sender;
+            var ckbTag = Checks.ThrowsIsNull(ckb.Tag as CheckBox);
+            ckbTag.Checked = !ckb.Checked;
+        }
+
+        private void btnLogClear_Click(object sender, EventArgs e) {
+            txtLog.Clear();
         }
     }
 }
