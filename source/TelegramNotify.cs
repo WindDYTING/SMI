@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Serilog;
 using SMI;
 using Telegram.Bot;
-using Telegram.Bot.Types.Enums;
 
 namespace AutoTrader
 {
@@ -16,11 +12,6 @@ namespace AutoTrader
     {
         private const double MaximumLength = 4000.0;
         public static IList<TelegramNotifyOptions> Options { get; } = new List<TelegramNotifyOptions>();
-
-        public enum TelegramUser
-        {
-            摘星1, 摘星2 , IT
-        }
 
         public static async Task SendAsync(string msg, params int[] sendToWho)
         {

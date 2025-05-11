@@ -25,7 +25,7 @@ namespace SMI {
             var now = DateTime.Now;
             if (now.ToTimeOnly() >= _specifyTimeIsUp && now.Day == _currentDay)
             {
-                _currentDay = now.Day;
+                _currentDay = now.AddDays(1).Day;
                 TimeIsUp?.Invoke(this, EventArgs.Empty);
             }
         }

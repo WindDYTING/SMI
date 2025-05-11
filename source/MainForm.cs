@@ -133,6 +133,8 @@ namespace SMI
         private async void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
             try {
                 await _crawler.DisposeAsync();
+                _timerService.TimeIsUp -= OnTimeIsUp;
+                _timerService.Dispose();
             } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
             }
