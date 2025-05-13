@@ -31,14 +31,14 @@ namespace SMI {
 
             Interlocked.Exchange(ref _previousFromPage, record.FromPage);
 
-            IList<Dictionary<string, string>> ret;
+            IList<object> ret;
             if (!string.IsNullOrEmpty(record.QueryRange))
             {
-                ret = await _crawler.GetSpecifiedMarketTypeReports(record.NotionIndex, record.QueryRange, record.FromPage, record.MarketType);
+                ret = await _crawler.GetSpecifiedMarketTypeReports(record.NotionIndex, record.QueryRange, record.FromPage, record.MarketType, record.ResultType);
             }
             else
             {
-                ret = await _crawler.GetSpecifiedMarketTypeReportsRange(record.NotionIndex, record.StartDate, record.EndDate, record.FromPage, record.MarketType);
+                ret = await _crawler.GetSpecifiedMarketTypeReportsRange(record.NotionIndex, record.StartDate, record.EndDate, record.FromPage, record.MarketType, record.ResultType);
             }
 
             MessageReceived?.Invoke(this, new MessageReceivedEventArgs(ret));

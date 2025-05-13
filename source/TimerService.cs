@@ -17,6 +17,12 @@ namespace SMI {
             _currentDay = DateTime.Now.Day;
             _timer.Start();
         }
+
+        /// <summary>
+        /// For Unit Test
+        /// </summary>
+        /// <param name="interval"></param>
+        internal void SetCheckInterval(double interval) => _timer.Interval = interval; 
         
         public void SetTimeIsUp(TimeOnly time) => _specifyTimeIsUp = time;
 

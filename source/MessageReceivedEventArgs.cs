@@ -2,12 +2,21 @@
 using System.Collections.Generic;
 
 namespace SMI {
-    public class MessageReceivedEventArgs : EventArgs {
-        public MessageReceivedEventArgs(IList<Dictionary<string, string>> result)
+    public class MessageReceivedEventArgs<T> : EventArgs {
+        public MessageReceivedEventArgs(T result)
         {
             Result = result;
         }
 
-        public IList<Dictionary<string, string>> Result { get; }
+        public T Result { get; }
+    }
+
+    public class MessageReceivedEventArgs : EventArgs {
+        public MessageReceivedEventArgs(object result)
+        {
+            Result = result;
+        }
+
+        public object Result { get; }
     }
 }

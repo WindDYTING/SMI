@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using AutoTrader;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using SMI.Models;
 using SMI.Options;
 
 namespace SMI
@@ -18,7 +19,7 @@ namespace SMI
         private readonly SynchronizationContext _synchronizationContext;
         private readonly TimerService _timerService;
 
-        private readonly List<Dictionary<string, string>> _results = new();
+        private readonly List<object> _results = new();
 
         public MainForm(IConfiguration configuration) {
             InitializeComponent();
@@ -65,8 +66,9 @@ namespace SMI
             }
         }
 
-        private void OnMessageReceived(object sender, MessageReceivedEventArgs e) {
-            _results.AddRange(e.Result);
+        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
+        {
+            _results.AddRange(e.Result as IList<object>);
         }
 
         private async void MainForm_Load(object sender, EventArgs e) {
@@ -119,13 +121,13 @@ namespace SMI
 
         private async Task CrawlerGetReports(int notionKind)
         {
-            IList<Dictionary<string, string>> data;
+            IList<KeyValueCollections> data;
             if(checkSpecifyDate.Checked) {
-                data = await _crawler.GetReportsRange(notionKind,
+                data = await _crawler.GetReportsRange<KeyValueCollections>(notionKind,
                     queryForm.Value.ToTaiwanDateString(),
                     queryTo.Value.ToTaiwanDateString());
             } else {
-                data = await _crawler.GetReports(notionKind,
+                data = await _crawler.GetReports<KeyValueCollections>(notionKind,
                     (selectionQueryRange.SelectedIndex + 1).ToString());
             }
             _results.AddRange(data);

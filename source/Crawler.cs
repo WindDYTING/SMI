@@ -5,15 +5,17 @@ using System.Threading.Tasks;
 using PuppeteerSharp;
 using Serilog;
 using Serilog.Events;
+using SMI.CrawlerStrategies;
 using SMI.Options;
 
 namespace SMI {
-    public class Crawler : ICrawler, IDisposable, IAsyncDisposable
+    public class Crawler : IDisposable, IAsyncDisposable
     {
         private readonly IBrowserFetcher _fetcher;
         private IBrowser _browser;
         public IGuarantor Guarantor { get; set; }
         public CrawlerOptions Options { get; } = new();
+        
 
         public Crawler()
         {
@@ -36,33 +38,59 @@ namespace SMI {
             try {
                 await _fetcher.DownloadAsync();
                 _browser = await Puppeteer.LaunchAsync(
-                    new LaunchOptions { Headless = true }
+                    new LaunchOptions { Headless = false }
                 );
             } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
             }
         }
 
-
-        public async Task<IList<Dictionary<string, string>>> GetReportsRange(int selectionValue, string from, string to, int fromPage=0) {
-            var results = new List<Dictionary<string, string>>();
+        public async Task<IList<TResult>> GetReportsRange<TResult>(int selectionValue, string from, string to, int fromPage=0) {
+            var results = new List<TResult>();
             foreach(var marketType in Constants.MarketTypes) 
             {
-                var result = await GetSpecifiedMarketTypeReportsRange(selectionValue, from, to, fromPage, marketType);
+                var result = await GetSpecifiedMarketTypeReportsRange<TResult>(selectionValue, from, to, fromPage, marketType);
                 results.AddRange(result);
                 await Guarantor.WaitGuarantorAsync();
                 Guarantor.ClearCache();
-
             }
 
             return results;
         }
 
-        public async Task<IList<Dictionary<string, string>>> GetSpecifiedMarketTypeReportsRange(int selectionValue, string from, string to, int fromPage,
+        public async Task<IList<TResult>> GetSpecifiedMarketTypeReportsRange<TResult>(int selectionValue, string from, string to, int fromPage,
             string marketType)
         {
             await using var page = await _browser.NewPageAsync();
-            var record = new Record(selectionValue, marketType, from, to);
+            var record = new Record(selectionValue, marketType, from, to, typeof(TResult));
+            try {
+                await ActionToGetReportsRange(from, to, page);
+                var elements1 = await GetAllReportHandles(selectionValue, marketType, page);
+                IElementHandle[] elements = elements1;
+                await ClickDetailButtons(elements, fromPage);
+                var result = await GetInnerReports<TResult>(selectionValue, page, record, fromPage);
+                return result;
+            } catch(OperationCanceledException)
+            {
+                throw;
+            } catch(WaitTaskTimeoutException)
+            {
+                Log.Warning(string.Empty, Constants.NoData);
+            } catch(Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+            } finally {
+                await Task.Delay(500);
+            }
+
+            return Array.Empty<TResult>();
+        }
+
+        public async Task<IList<object>> GetSpecifiedMarketTypeReportsRange(int selectionValue, string from, string to, int fromPage,
+            string marketType, Type resultType)
+        {
+            await using var page = await _browser.NewPageAsync();
+            var record = new Record(selectionValue, marketType, from, to, resultType);
             try {
                 await ActionToGetReportsRange(from, to, page);
                 var elements1 = await GetAllReportHandles(selectionValue, marketType, page);
@@ -83,14 +111,14 @@ namespace SMI {
                 await Task.Delay(500);
             }
 
-            return Array.Empty<Dictionary<string, string>>();
+            return Array.Empty<object>();
         }
 
-        public async Task<IList<Dictionary<string, string>>> GetReports(int selectionValue, string queryRange, int fromPage=0) {
-            var results = new List<Dictionary<string, string>>();
+        public async Task<IList<TResult>> GetReports<TResult>(int selectionValue, string queryRange, int fromPage=0) {
+            var results = new List<TResult>();
 
             foreach(var marketType in Constants.MarketTypes) {
-                var result = await GetSpecifiedMarketTypeReports(selectionValue, queryRange, fromPage, marketType);
+                var result = await GetSpecifiedMarketTypeReports<TResult>(selectionValue, queryRange, fromPage, marketType);
                 results.AddRange(result);
                 await Guarantor.WaitGuarantorAsync();
                 Guarantor.ClearCache();
@@ -99,9 +127,9 @@ namespace SMI {
             return results;
         }
 
-        public async Task<IList<Dictionary<string, string>>> GetSpecifiedMarketTypeReports(int selectionValue, string queryRange, int fromPage, string marketType)
+        public async Task<IList<object>> GetSpecifiedMarketTypeReports(int selectionValue, string queryRange, int fromPage, string marketType, Type resultType)
         {
-            var record = new Record(selectionValue, marketType, queryRange);
+            var record = new Record(selectionValue, marketType, queryRange, resultType);
             try {
                 await using var page = await _browser.NewPageAsync();
                 await ActionToGetReports(queryRange, page);
@@ -119,7 +147,30 @@ namespace SMI {
             } finally {
                 await Task.Delay(500);
             }
-            return Array.Empty<Dictionary<string, string>>();
+            return Array.Empty<object>();
+        }
+
+        public async Task<IList<TResult>> GetSpecifiedMarketTypeReports<TResult>(int selectionValue, string queryRange, int fromPage, string marketType)
+        {
+            var record = new Record(selectionValue, marketType, queryRange, typeof(TResult));
+            try {
+                await using var page = await _browser.NewPageAsync();
+                await ActionToGetReports(queryRange, page);
+                var elements1 = await GetAllReportHandles(selectionValue, marketType, page);
+                IElementHandle[] elements = elements1;
+                await ClickDetailButtons(elements, fromPage);
+                var ret = await GetInnerReports<TResult>(selectionValue, page, record, fromPage);
+                return ret;
+            } catch(OperationCanceledException) {
+                throw;
+            } catch(WaitTaskTimeoutException) {
+                Log.Warning(string.Empty, Constants.NoData);
+            } catch(Exception ex) {
+                Log.Error(ex, ex.Message);
+            } finally {
+                await Task.Delay(500);
+            }
+            return Array.Empty<TResult>();
         }
 
         public async Task ActionToGetReports(string queryRange, IPage page)
@@ -162,11 +213,9 @@ namespace SMI {
                 .ToArray();
             return elements;
         }
-
-
-        private async Task<IList<Dictionary<string, string>>> GetInnerReports(int selectionValue, IPage mainPage,
+        private async Task<IList<object>> GetInnerReports(int selectionValue, IPage mainPage,
             Record record, int fromPage) {
-            var list = new List<Dictionary<string, string>>();
+            var list = new List<object>();
             var pages = await _browser.PagesAsync();
             pages = pages.Where(p => p != mainPage)
                 .Where(p => p.Url.Equals(Router.ShareholdingMeetReportsUrl))
@@ -174,6 +223,8 @@ namespace SMI {
             var index = 0;
             try
             {
+                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(selectionValue));
+
                 foreach (var p in pages)
                 {
                     var succeedLoad = await p.WaitPageLoadAsync();
@@ -182,20 +233,49 @@ namespace SMI {
                         index++;
                         continue;
                     }
-                    
-                    var dict = new Dictionary<string, string>();
-                    var values = await p.QuerySelectorAllAsync(SelectorFactory.GetValueSelector(selectionValue));
-                    var fields = await p.QuerySelectorAllAsync(SelectorFactory.GetFieldSelector(selectionValue));
-                    foreach (var item in fields.Zip(values, (x, y) => (fieldElement: x, valueElement: y)))
+
+                    await strategy.GetNewsAsync(p, selectionValue);
+                    if (strategy.IsValid()) list.Add(strategy.Results);
+                }
+
+                return list;
+            }
+            finally
+            {
+                ClosePages(pages);
+                if (index > 0) 
+                {
+                    var newFromPage = pages.Length - index + fromPage;
+                    record.FromPage = newFromPage;
+                    Guarantor.EnqueueRecord(record);
+                }
+            }
+        }
+
+        private async Task<IList<TResult>> GetInnerReports<TResult>(int selectionValue, IPage mainPage,
+            Record record, int fromPage) {
+            var list = new List<TResult>();
+            var pages = await _browser.PagesAsync();
+            pages = pages.Where(p => p != mainPage)
+                .Where(p => p.Url.Equals(Router.ShareholdingMeetReportsUrl))
+                .ToArray();
+            var index = 0;
+            try
+            {
+                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(selectionValue)
+                    as ICrawlerStrategy<TResult>);
+
+                foreach (var p in pages)
+                {
+                    var succeedLoad = await p.WaitPageLoadAsync();
+                    if (!succeedLoad)
                     {
-                        var field = await p.EvaluateFunctionAsync<string>("e => e.textContent", item.fieldElement);
-                        var value = await p.EvaluateFunctionAsync<string>("e => e.textContent", item.valueElement);
-                        field = field.FilterString("\n");
-                        value = value.FilterString("\n");
-                        dict.TryAdd(field, value);
+                        index++;
+                        continue;
                     }
 
-                    if (dict.Any()) list.Add(dict);
+                    var ret = await strategy.GetNewsAsync(p, selectionValue);
+                    if (strategy.IsValid()) list.Add(ret);
                 }
 
                 return list;

@@ -1,3 +1,3 @@
 ﻿using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("SMI")]
+[assembly: InternalsVisibleTo("SMI.Tests")]
