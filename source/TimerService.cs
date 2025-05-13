@@ -2,7 +2,7 @@
 using System.Timers;
 
 namespace SMI {
-    public class TimerService : IDisposable
+    public class TimerService : IDisposable, ITimerService
     {
         private TimeOnly _specifyTimeIsUp;
         private readonly Timer _timer = new(TimeSpan.FromMinutes(5).TotalMilliseconds);

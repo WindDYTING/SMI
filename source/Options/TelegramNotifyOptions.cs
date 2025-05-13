@@ -1,4 +1,4 @@
-﻿namespace SMI {
+﻿namespace SMI.Options {
     public class TelegramNotifyOptions 
     {
         public string ChatId { get; set; }

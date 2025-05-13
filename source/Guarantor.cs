@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace SMI {
-    public class Guarantor
+    public class Guarantor : IGuarantor
     {
         private readonly Crawler _crawler;
         private readonly ConcurrentQueue<Record> _records = new();

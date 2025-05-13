@@ -5,13 +5,15 @@ using System.Threading.Tasks;
 using PuppeteerSharp;
 using Serilog;
 using Serilog.Events;
+using SMI.Options;
 
 namespace SMI {
-    public class Crawler : IDisposable, IAsyncDisposable
+    public class Crawler : ICrawler, IDisposable, IAsyncDisposable
     {
         private readonly IBrowserFetcher _fetcher;
         private IBrowser _browser;
-        public Guarantor Guarantor { get; set; }
+        public IGuarantor Guarantor { get; set; }
+        public CrawlerOptions Options { get; } = new();
 
         public Crawler()
         {
@@ -19,6 +21,14 @@ namespace SMI {
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.File(".log", LogEventLevel.Error, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
+        }
+
+        // For Unit Test
+        internal Crawler(IBrowser browser, IBrowserFetcher fetcher, IGuarantor guarantor)
+        {
+            _browser = browser;
+            _fetcher = fetcher;
+            Guarantor = guarantor;
         }
 
         public async Task InitAsync()
@@ -114,14 +124,14 @@ namespace SMI {
 
         public async Task ActionToGetReports(string queryRange, IPage page)
         {
-            await page.GoToAsync(Router.ShareholdingMeetReportsUrl);
+            await page.GoToAsync(Options.GoToUrl);
             await page.ClickAsync("#div4 > input[type=radio]:nth-child(5)");
             await page.SelectAsync("#date", queryRange);
         }
 
         public async Task ActionToGetReportsRange(string from, string to, IPage page)
         {
-            await page.GoToAsync(Router.ShareholdingMeetReportsUrl);
+            await page.GoToAsync(Options.GoToUrl);
             await page.ClickAsync("#div4 > input[type=radio]:nth-child(5)");
             await page.ClickAsync("#noticeDate");
             await page.TypeAsync("#yymmdd1", from);
@@ -172,7 +182,7 @@ namespace SMI {
                         index++;
                         continue;
                     }
-
+                    
                     var dict = new Dictionary<string, string>();
                     var values = await p.QuerySelectorAllAsync(SelectorFactory.GetValueSelector(selectionValue));
                     var fields = await p.QuerySelectorAllAsync(SelectorFactory.GetFieldSelector(selectionValue));

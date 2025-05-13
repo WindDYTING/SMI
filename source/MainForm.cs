@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using AutoTrader;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using SMI.Options;
 
 namespace SMI
 {
@@ -27,6 +28,7 @@ namespace SMI
             checkQueryRecent.Tag = checkSpecifyDate;
             checkSpecifyDate.Tag = checkQueryRecent;
             _crawler = new Crawler();
+            _crawler.Options.GoToUrl = Router.ShareholdingMeetReportsUrl;
             _guarantor = new Guarantor(_crawler);
             _guarantor.MessageReceived += OnMessageReceived;
             _crawler.Guarantor = _guarantor;

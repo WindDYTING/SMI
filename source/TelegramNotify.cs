@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Serilog;
 using SMI;
+using SMI.Options;
 using Telegram.Bot;
 
 namespace AutoTrader
