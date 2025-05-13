@@ -38,7 +38,7 @@ namespace SMI {
             try {
                 await _fetcher.DownloadAsync();
                 _browser = await Puppeteer.LaunchAsync(
-                    new LaunchOptions { Headless = false }
+                    new LaunchOptions { Headless = true }
                 );
             } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
@@ -223,7 +223,7 @@ namespace SMI {
             var index = 0;
             try
             {
-                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(selectionValue));
+                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(record.ResultType));
 
                 foreach (var p in pages)
                 {
@@ -262,7 +262,7 @@ namespace SMI {
             var index = 0;
             try
             {
-                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(selectionValue)
+                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(typeof(TResult))
                     as ICrawlerStrategy<TResult>);
 
                 foreach (var p in pages)

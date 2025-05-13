@@ -1,10 +1,15 @@
-﻿using SMI.CrawlerStrategies;
+﻿using System;
+using SMI.CrawlerStrategies;
+using SMI.Models;
 
 namespace SMI {
     public static class StrategiesFactory {
-        public static ICrawlerStrategy GetStrategy(int notionKind)
+        public static ICrawlerStrategy GetStrategy(Type type)
         {
-            return new KeyValueResultStrategy();
+            if (type == typeof(KeyValueCollections))
+                return new KeyValueResultStrategy();
+            else
+                return new ImageResultStrategy();
         } 
     }
 }

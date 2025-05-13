@@ -46,10 +46,8 @@ namespace SMI
                 foreach (int checkedIndex in selectionEventList.CheckedIndices)
                 {
                     await CrawlerGetReports(checkedIndex);
-
-                    var msg = string.Join($"-------{Environment.NewLine}", _results.Select(d => d.ToJson().Trim('{', '}')));
-
-                    await TelegramNotify.SendAsync(msg, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
+                    await TelegramNotify.SendAsync(_results, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
+                    var msg = string.Join($"-------{Environment.NewLine}", _results.Where(x => x is KeyValueCollections).Select(d => d.ToJson().Trim('{', '}')));
                     _synchronizationContext.Post(_ =>
                     {
                         txtLog.AppendText(msg + Environment.NewLine);
@@ -103,8 +101,8 @@ namespace SMI
 
                 await CrawlerGetReports(selectionKind.SelectedIndex);
 
-                var msg = string.Join($"------- {Environment.NewLine}", _results.Select(d => d.ToJson().Trim('{', '}')));
-                await TelegramNotify.SendAsync(msg, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
+                var msg = string.Join($"------- {Environment.NewLine}", _results.Where(x => x is KeyValueCollections).Select(d => d.ToJson().Trim('{', '}')));
+                await TelegramNotify.SendAsync(_results, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
                 txtLog.AppendText(msg + Environment.NewLine);
                 txtLog.AppendText("Telegram notified." + Environment.NewLine);
             }
@@ -121,16 +119,14 @@ namespace SMI
 
         private async Task CrawlerGetReports(int notionKind)
         {
-            IList<KeyValueCollections> data;
             if(checkSpecifyDate.Checked) {
-                data = await _crawler.GetReportsRange<KeyValueCollections>(notionKind,
+                _results.AddRange(await _crawler.GetReportsRange<KeyValueCollections>(notionKind,
                     queryForm.Value.ToTaiwanDateString(),
-                    queryTo.Value.ToTaiwanDateString());
+                    queryTo.Value.ToTaiwanDateString()));
             } else {
-                data = await _crawler.GetReports<KeyValueCollections>(notionKind,
-                    (selectionQueryRange.SelectedIndex + 1).ToString());
+                _results.AddRange(await _crawler.GetReports<ImageResult>(notionKind,
+                    (selectionQueryRange.SelectedIndex + 1).ToString()));
             }
-            _results.AddRange(data);
         }
 
 
