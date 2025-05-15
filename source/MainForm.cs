@@ -1,90 +1,72 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using AutoTrader;
 using Microsoft.Extensions.Configuration;
 using Serilog;
-using SMI.Models;
-using SMI.Options;
+using Serilog.Events;
+using SMI.Core;
+using SMI.Logging.Serilog;
+using SMI.Notification.Telegram;
+using Log = Serilog.Log;
 
-namespace SMI
+namespace SMI.Example.Winform
 {
     public partial class MainForm : Form {
         private readonly IConfiguration _configuration;
-        private readonly Crawler _crawler;
-        private readonly Guarantor _guarantor;
         private readonly SynchronizationContext _synchronizationContext;
-        private readonly TimerService _timerService;
-
-        private readonly List<object> _results = new();
+        private readonly Dictionary<string, TelegramNotifyOptions> _telegramNotifyOptions = new Dictionary<string, TelegramNotifyOptions>();
+        private readonly SmiBot _bot;
 
         public MainForm(IConfiguration configuration) {
             InitializeComponent();
+            _synchronizationContext = SynchronizationContext.Current;
             _configuration = configuration;
             queryForm.CustomFormat = "yyyyMMdd";
             queryTo.CustomFormat = "yyyyMMdd";
             checkQueryRecent.Tag = checkSpecifyDate;
             checkSpecifyDate.Tag = checkQueryRecent;
-            _crawler = new Crawler();
-            _crawler.Options.GoToUrl = Router.ShareholdingMeetReportsUrl;
-            _guarantor = new Guarantor(_crawler);
-            _guarantor.MessageReceived += OnMessageReceived;
-            _crawler.Guarantor = _guarantor;
-            _synchronizationContext = SynchronizationContext.Current;
-            _timerService = new TimerService(new TimeOnly(21, 30));
-            _timerService.TimeIsUp += OnTimeIsUp;
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.File(".log", LogEventLevel.Information, rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+            _bot = new SmiBot();
+            _bot.BeforeNotifyKeyValueCollections += OnBeforeNotifyKeyValueCollections;
+            _bot.BeforeTimeIsUp += tOnBeforeTimeIsUp;
+            _bot.Logger = new SmiLoggerSerilogAdapter(Log.Logger);
         }
 
-        private async void OnTimeIsUp(object sender, EventArgs e)
+        private void tOnBeforeTimeIsUp(object sender, EventArgs e)
         {
-            try
-            {
-                _synchronizationContext.Post(_ => lblStatus.Text = "Getting Data...", null);
-                foreach (int checkedIndex in selectionEventList.CheckedIndices)
-                {
-                    await CrawlerGetReports(checkedIndex);
-                    await TelegramNotify.SendAsync(_results, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
-                    var msg = string.Join($"-------{Environment.NewLine}", _results.Where(x => x is KeyValueCollections).Select(d => d.ToJson().Trim('{', '}')));
-                    _synchronizationContext.Post(_ =>
-                    {
-                        txtLog.AppendText(msg + Environment.NewLine);
-                        txtLog.AppendText("Telegram notified." + Environment.NewLine);
-                    }, null);
-
-                    _results.Clear();
-                }
-                _synchronizationContext.Post(_ => lblStatus.Text = "Finished!", null);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, ex.Message);
-            }
+            _synchronizationContext.Post(_ => lblStatus.Text = "Getting Data...", null);
         }
 
-        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
-        {
-            _results.AddRange(e.Result as IList<object>);
+        private async void OnBeforeNotifyKeyValueCollections(object sender, BeforeNotifyKeyValueCollectionsEventArgs e) {
+            var text = e.Data.Process();
+            await e.Notification.SendText(text);
+            _synchronizationContext.Post(_ => {
+                txtLog.AppendText(text + Environment.NewLine);
+                txtLog.AppendText("Telegram notified." + Environment.NewLine);
+            }, null);
+            _synchronizationContext.Post(_ => lblStatus.Text = "Finished!", null);
         }
 
         private async void MainForm_Load(object sender, EventArgs e) {
-            await _crawler.InitAsync();
+            await _bot.InitAsync();
         }
 
-        private void MainForm_Shown(object sender, EventArgs e) 
-        {
+        private void MainForm_Shown(object sender, EventArgs e) {
             try {
                 selectionKind.SelectedIndex = 0;
                 selectionQueryRange.SelectedIndex = 0;
-                foreach (var section in _configuration
+                foreach(var section in _configuration
                              .GetSection("telegramGroups")
-                             .GetChildren())
-                {
+                             .GetChildren()) {
                     var option = new TelegramNotifyOptions();
                     section.Bind(option);
-                    TelegramNotify.Options.Add(option);
+                    _telegramNotifyOptions.Add(option.Name, option);
                     checkTelegramSendToWho.Items.Add(option.Name);
                 }
             } catch(Exception ex) {
@@ -93,48 +75,38 @@ namespace SMI
         }
 
 
-        private async void btnCrawler_Click(object sender, EventArgs e)
-        {
-            try
-            {
+        private async void btnCrawler_Click(object sender, EventArgs e) {
+            try {
                 lblStatus.Text = "Getting Data...";
 
-                await CrawlerGetReports(selectionKind.SelectedIndex);
+                var dicts = await CrawlerGetReports(selectionKind.SelectedIndex);
 
-                var msg = string.Join($"------- {Environment.NewLine}", _results.Where(x => x is KeyValueCollections).Select(d => d.ToJson().Trim('{', '}')));
-                await TelegramNotify.SendAsync(_results, checkTelegramSendToWho.CheckedIndices.Cast<int>().ToArray());
+                var msg = dicts.Process();
+                _bot.RaiseNotify(dicts);
                 txtLog.AppendText(msg + Environment.NewLine);
                 txtLog.AppendText("Telegram notified." + Environment.NewLine);
-            }
-            catch (Exception)
-            {
+            } catch(Exception) {
                 // ignored
-            }
-            finally
-            {
-                _results.Clear();
+            } finally {
                 lblStatus.Text = "Finished!";
             }
         }
 
-        private async Task CrawlerGetReports(int notionKind)
-        {
+        private async Task<IList<KeyValueCollections>> CrawlerGetReports(int notionKind) {
             if(checkSpecifyDate.Checked) {
-                _results.AddRange(await _crawler.GetReportsRange<KeyValueCollections>(notionKind,
-                    queryForm.Value.ToTaiwanDateString(),
-                    queryTo.Value.ToTaiwanDateString()));
-            } else {
-                _results.AddRange(await _crawler.GetReports<ImageResult>(notionKind,
-                    (selectionQueryRange.SelectedIndex + 1).ToString()));
+                return await _bot.GetReportsRange((NotionKind)(notionKind + 1), queryForm.Value, queryTo.Value);
             }
+            return await _bot.GetReports((NotionKind)(notionKind + 1),
+                (QueryRange)(selectionQueryRange.SelectedIndex + 1));
+
         }
 
 
         private async void MainForm_FormClosing(object sender, FormClosingEventArgs e) {
             try {
-                await _crawler.DisposeAsync();
-                _timerService.TimeIsUp -= OnTimeIsUp;
-                _timerService.Dispose();
+                _bot.BeforeNotifyKeyValueCollections -= OnBeforeNotifyKeyValueCollections;
+                _bot.BeforeTimeIsUp -= tOnBeforeTimeIsUp;
+                await _bot.DisposeAsync();
             } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
             }
@@ -148,6 +120,35 @@ namespace SMI
 
         private void btnLogClear_Click(object sender, EventArgs e) {
             txtLog.Clear();
+        }
+
+        private void selectionEventList_SelectedValueChanged(object sender, EventArgs e) {
+            for(var i = 0; i < selectionEventList.Items.Count; i++) {
+                if(selectionEventList.GetItemChecked(i)) {
+                    _bot.Subscribe((NotionKind)(i + 1));
+                } else {
+                    _bot.Unsubscribe((NotionKind)(i + 1));
+                }
+            }
+        }
+
+        private void checkTelegramSendToWho_SelectedIndexChanged(object sender, EventArgs e) {
+            for(var i = 0; i < checkTelegramSendToWho.Items.Count; i++)
+            {
+                var name = checkTelegramSendToWho.Items[i] as string;
+                if (name is null)
+                {
+                    continue;
+                }
+
+                if(checkTelegramSendToWho.GetItemChecked(i))
+                {
+                    _bot.AddNotification(name, new AutoSplitTextTelegramNotification(_telegramNotifyOptions[name]));
+                } else
+                {
+                    _bot.RemoveNotification(name);
+                }
+            }
         }
     }
 }

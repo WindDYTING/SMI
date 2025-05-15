@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "source", "source\source.csproj", "{86C8C9FD-3F29-4A0C-902F-D14A72946774}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Example.Winform", "source\SMI.Example.Winform.csproj", "{86C8C9FD-3F29-4A0C-902F-D14A72946774}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Tests", "SMI.Tests\SMI.Tests.csproj", "{41901BB6-EECE-48F2-9D26-D92B73B03ED6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Core", "SMI.Core\SMI.Core.csproj", "{D03E7104-5AA2-48C9-A705-36B1EDE5FE94}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Notification.Telegram", "SMI.Notification.Telegram\SMI.Notification.Telegram.csproj", "{721E45B7-E344-4342-95D6-447F66677CA0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Logging.Serilog", "SMI.Logging.Serilog\SMI.Logging.Serilog.csproj", "{860705FB-9C10-4037-ABCA-4BA8957A7157}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +27,18 @@ Global
 		{41901BB6-EECE-48F2-9D26-D92B73B03ED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{41901BB6-EECE-48F2-9D26-D92B73B03ED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{41901BB6-EECE-48F2-9D26-D92B73B03ED6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D03E7104-5AA2-48C9-A705-36B1EDE5FE94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D03E7104-5AA2-48C9-A705-36B1EDE5FE94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D03E7104-5AA2-48C9-A705-36B1EDE5FE94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D03E7104-5AA2-48C9-A705-36B1EDE5FE94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{721E45B7-E344-4342-95D6-447F66677CA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{721E45B7-E344-4342-95D6-447F66677CA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{721E45B7-E344-4342-95D6-447F66677CA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{721E45B7-E344-4342-95D6-447F66677CA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{860705FB-9C10-4037-ABCA-4BA8957A7157}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{860705FB-9C10-4037-ABCA-4BA8957A7157}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{860705FB-9C10-4037-ABCA-4BA8957A7157}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{860705FB-9C10-4037-ABCA-4BA8957A7157}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

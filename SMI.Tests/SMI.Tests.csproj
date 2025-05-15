@@ -7,6 +7,7 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <AssemblyName>SMI.Core.Tests</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\source\source.csproj" />
+    <ProjectReference Include="..\SMI.Core\SMI.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

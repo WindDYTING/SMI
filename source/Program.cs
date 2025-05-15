@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System;
 using System.Windows.Forms;
 using Microsoft.Extensions.Configuration;
 
-namespace SMI
-{
-    class Program
-    {
+namespace SMI.Example.Winform {
+    internal class Program {
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>

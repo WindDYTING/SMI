@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace SMI.Example.Winform {
+namespace SMI.Core {
     internal static class Checks {
 
         [return:NotNull]
