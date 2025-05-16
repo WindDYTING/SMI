@@ -24,7 +24,7 @@ namespace SMI.Example.Winform {
                 }
             }
 
-            return string.Join($"------- {Environment.NewLine}", list.Select(x => x.ToJson().Trim('{', '}')));
+            return string.Join($"------- {Environment.NewLine}", list.Select(x => x.ToJson().Trim('{', '}').Replace("\"", string.Empty)));
         }
     }
 }
