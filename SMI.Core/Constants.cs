@@ -14,5 +14,5 @@ public static class Constants
         Sii, Otc, Rotc, Pub
     };
 
-    public const int MaximumOpenInnerPage = 10;
+    public const int SwitchPageDelay = 100;
 }

@@ -23,7 +23,7 @@ namespace SMI.Core {
 
         public Crawler(ILogger logger)
         {
-            _fetcher = new BrowserFetcher();
+            _fetcher = new BrowserFetcher(SupportedBrowser.Chrome);
             Options = new CrawlerOptions();
             Logger = logger;
         }
@@ -39,14 +39,19 @@ namespace SMI.Core {
 
         public async Task InitAsync()
         {
-            try {
+            try
+            {
                 await _fetcher.DownloadAsync();
                 _browser = await Puppeteer.LaunchAsync(
-                    new LaunchOptions { Headless = true }
+                    new LaunchOptions
+                    {
+                        Headless = true,
+                    }
                 );
             } catch(Exception ex)
             {
                 Logger.Err(ex.Message, ex);
+                throw;
             }
         }
 
@@ -85,7 +90,7 @@ namespace SMI.Core {
             {
                 Logger.Err(ex.Message, ex);
             } finally {
-                await Task.Delay(500);
+                await Task.Delay(Constants.SwitchPageDelay);
             }
 
             return Array.Empty<TResult>();
@@ -113,7 +118,7 @@ namespace SMI.Core {
             {
                 Logger.Err(ex.Message, ex);
             } finally {
-                await Task.Delay(500);
+                await Task.Delay(Constants.SwitchPageDelay);
             }
 
             return Array.Empty<object>();
@@ -150,7 +155,7 @@ namespace SMI.Core {
             } catch(Exception ex) {
                 Logger.Err(ex.Message, ex);
             } finally {
-                await Task.Delay(500);
+                await Task.Delay(Constants.SwitchPageDelay);
             }
             return Array.Empty<object>();
         }
@@ -173,7 +178,7 @@ namespace SMI.Core {
             } catch(Exception ex) {
                 Logger.Err(ex.Message, ex);
             } finally {
-                await Task.Delay(500);
+                await Task.Delay(Constants.SwitchPageDelay);
             }
             return Array.Empty<TResult>();
         }
