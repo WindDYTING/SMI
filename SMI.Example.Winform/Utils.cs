@@ -17,7 +17,7 @@ namespace SMI.Example.Winform {
             {
                 if (collections.NotionKind == NotionKind.依證交法第43條之1第1項取得股份公告)
                 {
-                    foreach (var kvp in collections.Except(collections.TakeWhile(x => !x.Key.Contains("4.新增或減少之共同取得人"))))
+                    foreach (var kvp in collections.SkipWhile(x => !x.Key.Contains("4.新增或減少之共同取得人")))
                     {
                         collections.Remove(kvp.Key);
                     }
