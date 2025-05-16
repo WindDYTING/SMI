@@ -35,22 +35,23 @@ namespace SMI.Example.Winform
             _bot = new SmiBot();
             _bot.BeforeNotifyKeyValueCollections += OnBeforeNotifyKeyValueCollections;
             _bot.BeforeTimeIsUp += OnBeforeTimeIsUp;
+            _bot.AfterTimeIsUp += OnAfterTimeIsUp;
             _bot.Logger = new SmiLoggerSerilogAdapter(Log.Logger);
+            _bot.AddNotification("textbox", new NotificationToTextBox(txtLog, _synchronizationContext));
         }
 
-        private void OnBeforeTimeIsUp(object sender, EventArgs e)
+        private void OnAfterTimeIsUp(object sender, EventArgs e)
         {
+            _synchronizationContext.Post(_ => lblStatus.Text = "Finished!", null);
+        }
+
+        private void OnBeforeTimeIsUp(object sender, EventArgs e) {
             _synchronizationContext.Post(_ => lblStatus.Text = "Getting Data...", null);
         }
 
         private async void OnBeforeNotifyKeyValueCollections(object sender, BeforeNotifyKeyValueCollectionsEventArgs e) {
             var text = e.Data.Process();
             await e.Notification.SendText(text);
-            _synchronizationContext.Post(_ => {
-                txtLog.AppendText(text + Environment.NewLine);
-                txtLog.AppendText("Telegram notified." + Environment.NewLine);
-            }, null);
-            _synchronizationContext.Post(_ => lblStatus.Text = "Finished!", null);
         }
 
         private async void MainForm_Load(object sender, EventArgs e) {
@@ -80,11 +81,7 @@ namespace SMI.Example.Winform
                 lblStatus.Text = "Getting Data...";
 
                 var dicts = await CrawlerGetReports(selectionKind.SelectedIndex);
-
-                var msg = dicts.Process();
                 _bot.RaiseNotify(dicts);
-                txtLog.AppendText(msg + Environment.NewLine);
-                txtLog.AppendText("Telegram notified." + Environment.NewLine);
             } catch(Exception ex) {
                 Log.Error(ex, ex.Message);
             } finally {
@@ -122,32 +119,26 @@ namespace SMI.Example.Winform
             txtLog.Clear();
         }
 
-        private void selectionEventList_SelectedValueChanged(object sender, EventArgs e) {
-            for(var i = 0; i < selectionEventList.Items.Count; i++) {
-                if(selectionEventList.GetItemChecked(i)) {
-                    _bot.Subscribe((NotionKind)(i + 1));
+        private void checkTelegramSendToWho_SelectedIndexChanged(object sender, EventArgs e) {
+            for(var i = 0; i < checkTelegramSendToWho.Items.Count; i++) {
+                var name = checkTelegramSendToWho.Items[i] as string;
+                if(name is null) {
+                    continue;
+                }
+
+                if(checkTelegramSendToWho.GetItemChecked(i)) {
+                    _bot.AddNotification(name, new AutoSplitTextTelegramNotification(_telegramNotifyOptions[name]));
                 } else {
-                    _bot.Unsubscribe((NotionKind)(i + 1));
+                    _bot.RemoveNotification(name);
                 }
             }
         }
 
-        private void checkTelegramSendToWho_SelectedIndexChanged(object sender, EventArgs e) {
-            for(var i = 0; i < checkTelegramSendToWho.Items.Count; i++)
-            {
-                var name = checkTelegramSendToWho.Items[i] as string;
-                if (name is null)
-                {
-                    continue;
-                }
-
-                if(checkTelegramSendToWho.GetItemChecked(i))
-                {
-                    _bot.AddNotification(name, new AutoSplitTextTelegramNotification(_telegramNotifyOptions[name]));
-                } else
-                {
-                    _bot.RemoveNotification(name);
-                }
+        private void selectionEventList_ItemCheck(object sender, ItemCheckEventArgs e) {
+            if(e.NewValue == CheckState.Checked) {
+                _bot.Subscribe((NotionKind)(e.Index + 1));
+            } else {
+                _bot.Unsubscribe((NotionKind)(e.Index + 1));
             }
         }
     }

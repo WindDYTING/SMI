@@ -24,7 +24,12 @@ namespace SMI.Core {
         /// <param name="interval"></param>
         internal void SetCheckInterval(double interval) => _timer.Interval = interval; 
         
-        public void SetTimeIsUp(TimeOnly time) => _specifyTimeIsUp = time;
+        public void SetTimeIsUp(TimeOnly time)
+        {
+            _timer.Stop();
+            _specifyTimeIsUp = time;
+            _timer.Start();
+        }
 
         private void OnElapsed(object sender, ElapsedEventArgs e)
         {

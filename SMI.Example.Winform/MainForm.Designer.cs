@@ -319,7 +319,7 @@ namespace SMI.Example.Winform
             selectionEventList.Name = "selectionEventList";
             selectionEventList.Size = new System.Drawing.Size(1199, 1522);
             selectionEventList.TabIndex = 8;
-            selectionEventList.SelectedValueChanged += selectionEventList_SelectedValueChanged;
+            selectionEventList.ItemCheck += selectionEventList_ItemCheck;
             // 
             // panel5
             // 
