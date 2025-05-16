@@ -25,7 +25,7 @@ namespace SMI.Core.CrawlerStrategies {
                 BurstMode = true,
                 OmitBackground = true
             });
-            return new ImageResult(stream);
+            return new ImageResult(stream, notionKind);
         }
 
         public bool IsValid()

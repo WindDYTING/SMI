@@ -4,6 +4,11 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>SMI_Notification_Telegram_Wind_DYTING</PackageId>
+    <Version>1.0.0</Version>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Authors>Wind.DY</Authors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,5 +18,9 @@
   <ItemGroup>
     <ProjectReference Include="..\SMI.Core\SMI.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" Pack="true" PackagePath="" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>  
 
 </Project>

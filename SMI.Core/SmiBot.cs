@@ -251,6 +251,8 @@ namespace SMI.Core {
 
         public void Dispose()
         {
+            _guarantor.MessageReceived -= OnMessageReceived;
+            TimeService.TimeIsUp -= OnTimeIsUp;
             var crawler = Crawler as IDisposable;
             crawler?.Dispose();
             var guarantor = _guarantor as IDisposable;
@@ -264,18 +266,19 @@ namespace SMI.Core {
                     disposable.Dispose();
                 } 
             }
-            _notifications.Clear();
 
-            _guarantor.MessageReceived -= OnMessageReceived;
-            TimeService.TimeIsUp -= OnTimeIsUp;
+            _notifications.Clear();
         }
 
         public async ValueTask DisposeAsync()
         {
+            _guarantor.MessageReceived -= OnMessageReceived;
+            TimeService.TimeIsUp -= OnTimeIsUp;
             if (Crawler is IAsyncDisposable crawler)
             {
                 await crawler.DisposeAsync();
             }
+
             var guarantor = _guarantor as IDisposable;
             guarantor?.Dispose();
             var timer = TimeService as IDisposable;
@@ -287,10 +290,8 @@ namespace SMI.Core {
                     await disposable.DisposeAsync();
                 } 
             }
-            _notifications.Clear();
 
-            _guarantor.MessageReceived -= OnMessageReceived;
-            TimeService.TimeIsUp -= OnTimeIsUp;
+            _notifications.Clear();
         }
     }
 }

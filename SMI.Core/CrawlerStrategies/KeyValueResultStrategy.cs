@@ -21,7 +21,7 @@ namespace SMI.Core.CrawlerStrategies {
 
         private static async Task<KeyValueCollections> GetNewsCoreAsync(IPage page, int notionKind)
         {
-            var dict = new KeyValueCollections();
+            var dict = new KeyValueCollections(notionKind);
             var values = await page.QuerySelectorAllAsync(SelectorFactory.GetValueSelector(notionKind));
             var fields = await page.QuerySelectorAllAsync(SelectorFactory.GetFieldSelector(notionKind));
             foreach (var item in fields.Zip(values, (x, y) => (fieldElement: x, valueElement: y)))
