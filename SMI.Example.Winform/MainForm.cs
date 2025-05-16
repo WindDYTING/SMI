@@ -85,8 +85,8 @@ namespace SMI.Example.Winform
                 _bot.RaiseNotify(dicts);
                 txtLog.AppendText(msg + Environment.NewLine);
                 txtLog.AppendText("Telegram notified." + Environment.NewLine);
-            } catch(Exception) {
-                // ignored
+            } catch(Exception ex) {
+                Log.Error(ex, ex.Message);
             } finally {
                 lblStatus.Text = "Finished!";
             }

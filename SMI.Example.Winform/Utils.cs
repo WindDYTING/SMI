@@ -13,12 +13,18 @@ namespace SMI.Example.Winform {
 
         public static string Process(this IList<KeyValueCollections> list)
         {
-            var filterElements = list.Where(kvp => kvp.NotionKind == NotionKind.依證交法第43條之1第1項取得股份公告)
-                .SelectMany(kvp => kvp.TakeWhile(x => !x.Key.Equals("3.取得或增減之股數、日期及方式"))
-                    .ToDictionary(x => x.Key, x => x.Value))
-                .ToDictionary(x => x.Key, x => x.Value);
+            foreach (var collections in list)
+            {
+                if (collections.NotionKind == NotionKind.依證交法第43條之1第1項取得股份公告)
+                {
+                    foreach (var kvp in collections.Except(collections.TakeWhile(x => !x.Key.Contains("4.新增或減少之共同取得人"))))
+                    {
+                        collections.Remove(kvp.Key);
+                    }
+                }
+            }
 
-            return string.Join($"------- {Environment.NewLine}", filterElements.Select(x => x.ToJson().Trim('{', '}')));
+            return string.Join($"------- {Environment.NewLine}", list.Select(x => x.ToJson().Trim('{', '}')));
         }
     }
 }

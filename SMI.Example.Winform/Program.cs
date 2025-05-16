@@ -15,7 +15,7 @@ namespace SMI.Example.Winform {
             Application.SetCompatibleTextRenderingDefault(false);
             var config = new ConfigurationBuilder()
                 .AddUserSecrets<Program>(true)
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", true)
                 .Build();
 
             Application.Run(new MainForm(config));
