@@ -103,6 +103,7 @@ namespace SMI.Example.Winform
             try {
                 _bot.BeforeNotifyKeyValueCollections -= OnBeforeNotifyKeyValueCollections;
                 _bot.BeforeTimeIsUp -= OnBeforeTimeIsUp;
+                _bot.AfterTimeIsUp -= OnAfterTimeIsUp;
                 await _bot.DisposeAsync();
             } catch(Exception ex) {
                 Log.Error(ex, ex.Message);

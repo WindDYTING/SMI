@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Logging.Serilog", "SMI.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.Example.Winform", "SMI.Example.Winform\SMI.Example.Winform.csproj", "{8703059A-CFDD-E8B9-4604-51CF15B7561D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMI.RealtimeNews", "..\SMI.RealtimeNews\SMI.RealtimeNews.csproj", "{8BD01D01-CA77-5A90-02FA-3CD23FDE5CF1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{8703059A-CFDD-E8B9-4604-51CF15B7561D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8703059A-CFDD-E8B9-4604-51CF15B7561D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8703059A-CFDD-E8B9-4604-51CF15B7561D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BD01D01-CA77-5A90-02FA-3CD23FDE5CF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BD01D01-CA77-5A90-02FA-3CD23FDE5CF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BD01D01-CA77-5A90-02FA-3CD23FDE5CF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BD01D01-CA77-5A90-02FA-3CD23FDE5CF1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

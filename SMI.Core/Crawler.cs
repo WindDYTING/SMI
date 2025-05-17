@@ -13,6 +13,7 @@ namespace SMI.Core {
         public IGuarantor Guarantor { get; set; }
         public CrawlerOptions Options { get; }
         public ILogger Logger { get; }
+        public IStrategyFactory? CustomStrategyFactory { get; set; }
 
         public Crawler(CrawlerOptions options, ILogger logger)
         {
@@ -55,7 +56,7 @@ namespace SMI.Core {
             }
         }
 
-        public async Task<IList<TResult>> GetReportsRange<TResult>(int selectionValue, string from, string to, int fromPage=0) {
+        public virtual async Task<IList<TResult>> GetReportsRange<TResult>(int selectionValue, string from, string to, int fromPage=0) {
             var results = new List<TResult>();
             foreach(var marketType in Constants.MarketTypes) 
             {
@@ -68,7 +69,7 @@ namespace SMI.Core {
             return results;
         }
 
-        public async Task<IList<TResult>> GetSpecifiedMarketTypeReportsRange<TResult>(int selectionValue, string from, string to, int fromPage,
+        public virtual async Task<IList<TResult>> GetSpecifiedMarketTypeReportsRange<TResult>(int selectionValue, string from, string to, int fromPage,
             string marketType)
         {
             await using var page = await _browser.NewPageAsync();
@@ -106,7 +107,7 @@ namespace SMI.Core {
                 var elements1 = await GetAllReportHandles(selectionValue, marketType, page);
                 IElementHandle[] elements = elements1;
                 await ClickDetailButtons(elements, fromPage);
-                var result = await GetInnerReports(selectionValue, page, record, fromPage);
+                var result = await GetInnerReports<object>(selectionValue, page, record, fromPage);
                 return result;
             } catch(OperationCanceledException)
             {
@@ -124,7 +125,7 @@ namespace SMI.Core {
             return Array.Empty<object>();
         }
 
-        public async Task<IList<TResult>> GetReports<TResult>(int selectionValue, string queryRange, int fromPage=0) {
+        public virtual async Task<IList<TResult>> GetReports<TResult>(int selectionValue, string queryRange, int fromPage=0) {
             var results = new List<TResult>();
 
             foreach(var marketType in Constants.MarketTypes) {
@@ -146,7 +147,7 @@ namespace SMI.Core {
                 var elements1 = await GetAllReportHandles(selectionValue, marketType, page);
                 IElementHandle[] elements = elements1;
                 await ClickDetailButtons(elements, fromPage);
-                var ret = await GetInnerReports(selectionValue, page, record, fromPage);
+                var ret = await GetInnerReports<object>(selectionValue, page, record, fromPage);
                 return ret;
             } catch(OperationCanceledException) {
                 throw;
@@ -160,7 +161,7 @@ namespace SMI.Core {
             return Array.Empty<object>();
         }
 
-        public async Task<IList<TResult>> GetSpecifiedMarketTypeReports<TResult>(int selectionValue, string queryRange, int fromPage, string marketType)
+        public virtual async Task<IList<TResult>> GetSpecifiedMarketTypeReports<TResult>(int selectionValue, string queryRange, int fromPage, string marketType)
         {
             var record = new Record(selectionValue, marketType, queryRange, typeof(TResult));
             try {
@@ -183,14 +184,14 @@ namespace SMI.Core {
             return Array.Empty<TResult>();
         }
 
-        public async Task ActionToGetReports(string queryRange, IPage page)
+        public virtual async Task ActionToGetReports(string queryRange, IPage page)
         {
             await page.GoToAsync(Options.GoToUrl);
             await page.ClickAsync("#div4 > input[type=radio]:nth-child(5)");
             await page.SelectAsync("#date", queryRange);
         }
 
-        public async Task ActionToGetReportsRange(string from, string to, IPage page)
+        public virtual async Task ActionToGetReportsRange(string from, string to, IPage page)
         {
             await page.GoToAsync(Options.GoToUrl);
             await page.ClickAsync("#div4 > input[type=radio]:nth-child(5)");
@@ -199,7 +200,7 @@ namespace SMI.Core {
             await page.TypeAsync("#yymmdd2", to);
         }
 
-        private static async Task ClickDetailButtons(IElementHandle[] elements, int fromPage)
+        private async Task ClickDetailButtons(IElementHandle[] elements, int fromPage)
         {
             foreach(var e in elements.Skip(fromPage)) {
                 var elementOfButton = await e.QuerySelectorAsync(
@@ -223,44 +224,44 @@ namespace SMI.Core {
                 .ToArray();
             return elements;
         }
-        private async Task<IList<object>> GetInnerReports(int selectionValue, IPage mainPage,
-            Record record, int fromPage) {
-            var list = new List<object>();
-            var pages = await _browser.PagesAsync();
-            pages = pages.Where(p => p != mainPage)
-                .Where(p => p.Url.Equals(Router.ShareholdingMeetReportsUri.ToString()))
-                .ToArray();
-            var index = 0;
-            try
-            {
-                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(record.ResultType));
+        //private async Task<IList<object>> GetInnerReports(int selectionValue, IPage mainPage,
+        //    Record record, int fromPage) {
+        //    var list = new List<object>();
+        //    var pages = await _browser.PagesAsync();
+        //    pages = pages.Where(p => p != mainPage)
+        //        .Where(p => p.Url.Equals(Router.ShareholdingMeetReportsUri.ToString()))
+        //        .ToArray();
+        //    var index = 0;
+        //    try
+        //    {
+        //        var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(record.ResultType));
 
-                foreach (var p in pages)
-                {
-                    var succeedLoad = await p.WaitPageLoadAsync();
-                    if (!succeedLoad)
-                    {
-                        index++;
-                        continue;
-                    }
+        //        foreach (var p in pages)
+        //        {
+        //            var succeedLoad = await p.WaitPageLoadAsync();
+        //            if (!succeedLoad)
+        //            {
+        //                index++;
+        //                continue;
+        //            }
 
-                    await strategy.GetNewsAsync(p, selectionValue);
-                    if (strategy.IsValid()) list.Add(strategy.Results);
-                }
+        //            await strategy.GetNewsAsync(p, selectionValue);
+        //            if (strategy.IsValid()) list.Add(strategy.Results);
+        //        }
 
-                return list;
-            }
-            finally
-            {
-                ClosePages(pages);
-                if (index > 0) 
-                {
-                    var newFromPage = pages.Length - index + fromPage;
-                    record.FromPage = newFromPage;
-                    Guarantor.EnqueueRecord(record);
-                }
-            }
-        }
+        //        return list;
+        //    }
+        //    finally
+        //    {
+        //        ClosePages(pages);
+        //        if (index > 0) 
+        //        {
+        //            var newFromPage = pages.Length - index + fromPage;
+        //            record.FromPage = newFromPage;
+        //            Guarantor.EnqueueRecord(record);
+        //        }
+        //    }
+        //}
 
         private async Task<IList<TResult>> GetInnerReports<TResult>(int selectionValue, IPage mainPage,
             Record record, int fromPage) {
@@ -272,8 +273,7 @@ namespace SMI.Core {
             var index = 0;
             try
             {
-                var strategy = Checks.ThrowsIsNull(StrategiesFactory.GetStrategy(typeof(TResult))
-                    as ICrawlerStrategy<TResult>);
+                var strategy = DetermineStrategyFromType<TResult>(record);
 
                 foreach (var p in pages)
                 {
@@ -300,6 +300,30 @@ namespace SMI.Core {
                     Guarantor.EnqueueRecord(record);
                 }
             }
+        }
+
+        private ICrawlerStrategy<TResult> DetermineStrategyFromType<TResult>(Record record)
+        {
+            ICrawlerStrategy<TResult> strategy;
+            if (typeof(TResult) == typeof(object) && record.ResultType != typeof(object))
+            {
+                strategy = StrategiesFactory.GetDefaultStrategy(record.ResultType) as ICrawlerStrategy<TResult>;
+            }
+            else if (typeof(TResult) != typeof(object))
+            {
+                strategy = StrategiesFactory.GetDefaultStrategy(typeof(TResult)) as ICrawlerStrategy<TResult>;
+            }
+            else
+            {
+                throw new ArgumentException("object type is not support.");
+            }
+
+            if (strategy is null)
+            {
+                strategy = CustomStrategyFactory?.GetStrategy(typeof(TResult)) as ICrawlerStrategy<TResult>;
+            }
+
+            return Checks.ThrowsIsNull(strategy);
         }
 
         public void ClosePages(IPage[] pages)
