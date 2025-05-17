@@ -5,6 +5,12 @@ using PuppeteerSharp;
 namespace SMI.Core.CrawlerStrategies {
     public class KeyValueResultStrategy : ICrawlerStrategy<KeyValueCollections> {
 
+        public KeyValueResultStrategy(IValueSelector? valueSelector, IFieldSelector? fieldSelector)
+        {
+            CustomFieldSelector = fieldSelector ?? new DefaultFieldSelector();
+            CustomValueSelector = valueSelector ?? new DefaultValueSelector();
+        }
+
         public async Task GetNewsAsync(IPage page, int notionKind) {
             var ret = await GetNewsCoreAsync(page, notionKind);
             Results = ret;
@@ -18,28 +24,35 @@ namespace SMI.Core.CrawlerStrategies {
         }
 
         public object Results { get; private set; }
+        public IValueSelector CustomValueSelector { get; }
+        public IFieldSelector CustomFieldSelector { get; }
 
-        private static async Task<KeyValueCollections> GetNewsCoreAsync(IPage page, int notionKind)
+        private async Task<KeyValueCollections> GetNewsCoreAsync(IPage page, int notionKind)
         {
             var dict = new KeyValueCollections(notionKind);
-            var values = await page.QuerySelectorAllAsync(SelectorFactory.GetValueSelector(notionKind));
-            var fields = await page.QuerySelectorAllAsync(SelectorFactory.GetFieldSelector(notionKind));
-            foreach (var item in fields.Zip(values, (x, y) => (fieldElement: x, valueElement: y)))
-            {
-                var field = await page.EvaluateFunctionAsync<string>("e => e.textContent", item.fieldElement);
-                var value = await page.EvaluateFunctionAsync<string>("e => e.textContent", item.valueElement);
-                field = field.FilterString("\n");
-                value = value.FilterString("\n");
-                dict.TryAdd(field, value);
-            }
+            var elementsOfTr = await page.QuerySelectorAllAsync("#div01 > center > table.hasBorder > tbody > tr");
 
+            foreach (var (tr, trIndex) in elementsOfTr
+                .Select((e, i) => (e, i)))
+            {
+                    var fieldSelector = CustomFieldSelector.GetFieldSelectorString(notionKind, trIndex, page);
+                    var valueSelector = CustomValueSelector.GetValueSelectorString(notionKind, trIndex, page);
+                    var fieldHandle = await page.QuerySelectorAsync(string.Format(fieldSelector, trIndex+1));
+                    var valueHandle = await page.QuerySelectorAsync(string.Format(valueSelector, trIndex+1));
+                    var field = await page.EvaluateFunctionAsync<string>("e => e.textContent", fieldHandle);
+                    var value = await page.EvaluateFunctionAsync<string>("e => e.textContent", valueHandle);
+                    field = field.FilterString("\n");
+                    value = value.FilterString("\n");
+                    dict.TryAdd(field, value);
+            }
             return dict;
         }
-
+        
         async Task<KeyValueCollections> ICrawlerStrategy<KeyValueCollections>.GetNewsAsync(IPage page, int notionKind)
         {
             await GetNewsAsync(page, notionKind);
             return ResultsOfT;
         }
+
     }
 }

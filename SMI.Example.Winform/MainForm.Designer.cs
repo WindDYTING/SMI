@@ -357,7 +357,7 @@ namespace SMI.Example.Winform
             checkTelegramSendToWho.Name = "checkTelegramSendToWho";
             checkTelegramSendToWho.Size = new System.Drawing.Size(1191, 150);
             checkTelegramSendToWho.TabIndex = 9;
-            checkTelegramSendToWho.SelectedIndexChanged += checkTelegramSendToWho_SelectedIndexChanged;
+            checkTelegramSendToWho.ItemCheck += checkTelegramSendToWho_ItemCheck;
             // 
             // MainForm
             // 

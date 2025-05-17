@@ -14,11 +14,11 @@ public abstract class SmiBotBase<TSubscribe> : IDisposable, IAsyncDisposable
     public ICrawler CrawlerCore { get; protected set; }
     public ITimerService TimeService { get; protected set; }
     protected List<object> Results { get; } = new();
-    public virtual event EventHandler BeforeTimeIsUp;
-    public virtual event EventHandler AfterTimeIsUp;
-    public virtual event EventHandler<BeforeNotifyKeyValueCollectionsEventArgs> BeforeNotifyKeyValueCollections;
-    public virtual event EventHandler<NotifyKeyValueCollectionEventArgs> NotifyEveryKeyValueCollection;
-    public virtual event EventHandler<NotifyImageEventArgs> NotifyEveryImage;
+    public event EventHandler BeforeTimeIsUp;
+    public event EventHandler AfterTimeIsUp;
+    public event EventHandler<BeforeNotifyKeyValueCollectionsEventArgs> BeforeNotifyKeyValueCollections;
+    public event EventHandler<NotifyKeyValueCollectionEventArgs> NotifyEveryKeyValueCollection;
+    public event EventHandler<NotifyImageEventArgs> NotifyEveryImage;
 
 
     protected SmiBotBase()

@@ -40,8 +40,7 @@ namespace SMI.Example.Winform
             _bot.AddNotification("textbox", new NotificationToTextBox(txtLog, _synchronizationContext));
         }
 
-        private void OnAfterTimeIsUp(object sender, EventArgs e)
-        {
+        private void OnAfterTimeIsUp(object sender, EventArgs e) {
             _synchronizationContext.Post(_ => lblStatus.Text = "Finished!", null);
         }
 
@@ -120,26 +119,23 @@ namespace SMI.Example.Winform
             txtLog.Clear();
         }
 
-        private void checkTelegramSendToWho_SelectedIndexChanged(object sender, EventArgs e) {
-            for(var i = 0; i < checkTelegramSendToWho.Items.Count; i++) {
-                var name = checkTelegramSendToWho.Items[i] as string;
-                if(name is null) {
-                    continue;
-                }
-
-                if(checkTelegramSendToWho.GetItemChecked(i)) {
-                    _bot.AddNotification(name, new AutoSplitTextTelegramNotification(_telegramNotifyOptions[name]));
-                } else {
-                    _bot.RemoveNotification(name);
-                }
-            }
-        }
-
         private void selectionEventList_ItemCheck(object sender, ItemCheckEventArgs e) {
             if(e.NewValue == CheckState.Checked) {
                 _bot.Subscribe((NotionKind)(e.Index + 1));
             } else {
                 _bot.Unsubscribe((NotionKind)(e.Index + 1));
+            }
+        }
+
+        private void checkTelegramSendToWho_ItemCheck(object sender, ItemCheckEventArgs e) {
+            var name = checkTelegramSendToWho.Items[e.Index] as string;
+            if (e.NewValue == CheckState.Checked)
+            {
+                _bot.AddNotification(name, new AutoSplitTextTelegramNotification(_telegramNotifyOptions[name]));
+            }
+            else
+            {
+                _bot.RemoveNotification(name);
             }
         }
     }

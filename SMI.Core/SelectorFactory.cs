@@ -6,16 +6,18 @@ namespace SMI.Core
     {
         private static List<string> ValueSelectors = new()
         {
-            "#div01 > center > table.hasBorder > tbody > tr > td",
-            "#div01 > center > table.hasBorder > tbody > tr > td",
-            "#div01 > center > form > table.hasBorder > tbody > tr > td"
+            "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > td",
+            "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > td",
+            "#div01 > center > form > table.hasBorder > tbody > tr:nth-child({0}) > td",
+            "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > td"
         };
 
         private static List<string> FieldSelectors = new()
         {
-            "#div01 > center > table.hasBorder > tbody > tr > th",
-            "#div01 > center > table.hasBorder > tbody > tr > th",
-            "#div01 > center > form > table.hasBorder > tbody > tr > th"
+            "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > th",
+            "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > th",
+            "#div01 > center > form > table.hasBorder > tbody > tr:nth-child({0}) > th",
+            "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > th"
         };
 
 
@@ -23,7 +25,7 @@ namespace SMI.Core
         {
             if (selectionKind >= ValueSelectors.Count)
             {
-                return "#div01 > center > table.hasBorder > tbody > tr > td";
+                return "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > td";
             }
             return ValueSelectors[selectionKind];
         }
@@ -32,7 +34,7 @@ namespace SMI.Core
         {
             if (selectionKind >= FieldSelectors.Count)
             {
-                return "#div01 > center > table.hasBorder > tbody > tr > th";
+                return "#div01 > center > table.hasBorder > tbody > tr:nth-child({0}) > th";
             }
             return FieldSelectors[selectionKind];
         }

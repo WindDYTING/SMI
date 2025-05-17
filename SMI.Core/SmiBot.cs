@@ -6,12 +6,6 @@ using System.Threading.Tasks;
 namespace SMI.Core {
     public class SmiBot : SmiBotBase<SubscribeInfo>
     {
-        public override event EventHandler BeforeTimeIsUp;
-        public override event EventHandler AfterTimeIsUp;
-        public override event EventHandler<BeforeNotifyKeyValueCollectionsEventArgs> BeforeNotifyKeyValueCollections; 
-        public override event EventHandler<NotifyKeyValueCollectionEventArgs> NotifyEveryKeyValueCollection;
-        public override event EventHandler<NotifyImageEventArgs> NotifyEveryImage;
-
         protected override async Task<IList<object>> CrawlerGetReports(SubscribeInfo info)
         {
             var returnList = new List<object>();
